@@ -35,6 +35,7 @@ When you have an instance of `HttpClient` and `JsonParser`, simply create the `D
 
 You can then call the `discover` method by passing a `Option[Service] => Future[T]` function that will take a `Service` if one exists and return the result of your call to the discovered service.
 This function needs to return a `Future` as most calls to external services are IO intensive and should be asynchronous. If you use something synchronous to call your service (as a JDBC driver for example), just wrap it in a `Future {...}` block.
+
 Example:
 ```
 val externalServiceClient = ... // Could be a HTTP client or anything that call your external service
