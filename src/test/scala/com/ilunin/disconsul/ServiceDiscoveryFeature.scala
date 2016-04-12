@@ -1,7 +1,7 @@
 package com.ilunin.disconsul
 
 import com.ilunin.disconsul.http.{HttpResponse, HttpClient}
-import com.ilunin.disconsul.json.JsonParser
+import com.ilunin.disconsul.json.{ConsulService, JsonParser}
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
@@ -14,15 +14,29 @@ class ServiceDiscoveryFeature extends FeatureSpec with GivenWhenThen with Matche
 
   feature("Service Discovery") {
 
-    scenario("Consul Discovery client should give host and port returned by consul to the passed function") {
-      Given("a Consul server that returns 127.0.0.1 and 9999 for the host and port of the myService service")
-      val consul = new Consul(Some(Service("127.0.0.1", 9999)))
+    scenario("Consul Discovery client should give address and port returned by consul to the passed function") {
+      Given("a Consul server that returns 127.0.0.1 and 9999 for the address and port of the myService service")
+      val consul = new Consul(Some(ConsulService("127.0.0.1", "", 9999)))
 
       When("Consul discovery is called for the service myService")
       val service = discover("myService", consul)
 
       Then("the service host should be 127.0.0.1")
       service.get.host should === ("127.0.0.1")
+
+      And("the service port should be 9999")
+      service.get.port should === (9999)
+    }
+
+    scenario("Consul Discovery client should give service address and port returned by consul to the passed function") {
+      Given("a Consul server that returns 127.0.0.2 and 9999 for the service address and port of the myService service")
+      val consul = new Consul(Some(ConsulService("127.0.0.1", "127.0.0.2", 9999)))
+
+      When("Consul discovery is called for the service myService")
+      val service = discover("myService", consul)
+
+      Then("the service host should be 127.0.0.2")
+      service.get.host should === ("127.0.0.2")
 
       And("the service port should be 9999")
       service.get.port should === (9999)
@@ -39,17 +53,18 @@ class ServiceDiscoveryFeature extends FeatureSpec with GivenWhenThen with Matche
       service should === (None)
     }
 
-    class Consul(service: Option[Service]) {
+    class Consul(service: Option[ConsulService]) {
 
       private val consulJson = service.map { service =>
         s"""
            |[
            | {
            |   "Node": {
-           |     "Address": "${service.host}"
+           |     "Address": "${service.address}"
            |   },
            |   "Service": {
-           |     "Port": ${service.port}
+           |     "Port": ${service.port},
+           |     "Address:" ${service.serviceAddress}
            |   }
            | }
            |]
@@ -68,13 +83,13 @@ class ServiceDiscoveryFeature extends FeatureSpec with GivenWhenThen with Matche
       }
 
       val jsonParser = new JsonParser {
-        override def parse(json: String): Seq[Service] = if (json == consulJson) service.toSeq else Seq.empty
+        override def parse(json: String): Seq[ConsulService] = if (json == consulJson) service.toSeq else Seq.empty
       }
 
     }
 
     def discover(serviceName: String, consul: Consul): Option[Service] = {
-      val consulDiscovery = new ConsulDiscovery(consul.consulClient, consul.jsonParser, "myService")
+      val consulDiscovery = new Disconsul(consul.consulClient, consul.jsonParser, "myService")
       consulDiscovery.discover { service: Option[Service] =>
         Future.successful(service)
       }.futureValue
