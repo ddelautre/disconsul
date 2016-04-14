@@ -1,4 +1,5 @@
-# disconsul
+# disconsul 
+[![Coverage Status](https://coveralls.io/repos/github/ddelautre/disconsul/badge.svg?branch=master)](https://coveralls.io/github/ddelautre/disconsul?branch=master)
 Service discovery client library in scala that uses Consul.
 
 ## Installation
